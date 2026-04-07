@@ -7,6 +7,7 @@
 | 對應教科書 | Ch4 簡單線性迴歸、Ch5 多元迴歸、Ch6 羅吉斯迴歸 |
 | 日期 | 4/9（三）09:10–12:00 |
 | Colab 程式 | [Ch4](https://colab.research.google.com/drive/18nr_4pOkjzvs-5uJoPWfKW5cU97KH0qP)、[Ch5](https://colab.research.google.com/drive/1iXifxI-AoJlkVMravR5rXP_2pDn8yYtS)、[Ch6](https://colab.research.google.com/drive/1gaq4UpvRb4CXUrgt_k6lJhMUAsakd1Ly) |
+| 作業資料集 | `data/Ship_Performance_Dataset.csv`（船舶營運績效資料，全學期共用） |
 
 ---
 
@@ -190,13 +191,12 @@ for name, coef in zip(X.columns, pipe.named_steps['lr'].coef_[0]):
 print('\n=== Classification Report ===')
 print(classification_report(y_test, y_pred))
 
-# === 混淆矩陣 ===
+# === 混淆矩陣 + ROC 曲線 ===
 fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
 ConfusionMatrixDisplay.from_predictions(y_test, y_pred, ax=axes[0])
 axes[0].set_title('Confusion Matrix')
 
-# === ROC 曲線 ===
 y_prob = pipe.predict_proba(X_test)[:, 1]
 fpr, tpr, _ = roc_curve(y_test, y_prob)
 roc_auc = auc(fpr, tpr)
@@ -223,34 +223,54 @@ plt.show()
 
 # 作業
 
-> **設計原則**：每題作業都是對應教學主題的**小修改**，換一組資料、換一個情境，但程式碼結構和步驟完全相同。
+> **本學期作業統一使用船舶營運績效資料集**（`data/Ship_Performance_Dataset.csv`）。
+> 每週用不同方法分析同一組資料，逐步加深。
+>
+> **設計原則**：每題作業都是對應教學主題的**小修改**，換成船舶資料，程式碼結構和步驟完全相同。
 
-## 第 1 題：簡單迴歸 + 多元迴歸
+## 資料集說明
 
-> 對應教學主題 1 + 2。
-> 課堂用「廣告花費 vs 銷售額」，作業換成「加州房價」。
-> 程式碼結構一模一樣，只需換資料集和欄位名。
+船舶營運績效資料集包含 2,736 筆船舶航次紀錄，涵蓋 4 種船型的營運數據。
 
-### 任務說明
-
-使用 California Housing 資料集，先用單一特徵做簡單迴歸，再用全部特徵做多元迴歸，比較差異。
-
-### 資料載入
+載入方式：
 
 ```python
-from sklearn.datasets import fetch_california_housing
-housing = fetch_california_housing()
-df = pd.DataFrame(housing.data, columns=housing.feature_names)
-df['Price'] = housing.target
+import pandas as pd
+df = pd.read_csv('data/Ship_Performance_Dataset.csv')
+print(df.head())
+print(f'\n資料形狀：{df.shape}')
+print(f'\n欄位：{df.columns.tolist()}')
 ```
+
+本週會用到的欄位：
+
+| 欄位 | 說明 | 本週用途 |
+|------|------|---------|
+| Engine_Power_kW | 引擎功率（kW） | Q1 簡單迴歸的 X |
+| Cargo_Weight_tons | 貨物重量（噸） | Q1 多元迴歸特徵 |
+| Distance_Traveled_nm | 航行距離（浬） | Q1 多元迴歸特徵 |
+| Speed_Over_Ground_knots | 航速（節） | Q1 多元迴歸特徵 |
+| Draft_meters | 吃水深度（公尺） | Q1 多元迴歸特徵 |
+| Operational_Cost_USD | 營運成本（美元） | **Q1 迴歸預測目標** |
+| Maintenance_Status | 維護狀態（Good/Fair/Critical） | **Q2 分類目標** |
+
+---
+
+## 第 1 題：簡單迴歸 + 多元迴歸 — 預測船舶營運成本
+
+> 對應教學主題 1 + 2。
+> 課堂用「廣告花費 → 銷售額」，作業換成「引擎功率 → 營運成本」。
+> 程式碼結構一模一樣，只需換 `pd.read_csv()` 和欄位名。
 
 ### 程式要求（對照課堂範例修改）
 
 | 步驟 | 課堂做的 | 作業要做的（只需改的地方） |
 |------|---------|-------------------------|
-| 資料 | 廣告花費（自建） | California Housing（sklearn 內建） |
-| 簡單迴歸特徵 | `ad_spend` | `MedInc`（收入中位數） |
-| 多元迴歸特徵 | `tv, radio, web`（3 個） | 全部 8 個特徵 |
+| 資料 | 廣告花費（自建） | `data/Ship_Performance_Dataset.csv` |
+| 簡單迴歸 X | `ad_spend` | `Engine_Power_kW` |
+| 簡單迴歸 Y | `sales` | `Operational_Cost_USD` |
+| 多元迴歸 X | `tv, radio, web`（3 個） | `Engine_Power_kW, Cargo_Weight_tons, Distance_Traveled_nm, Speed_Over_Ground_knots, Draft_meters`（5 個） |
+| 多元迴歸 Y | `sales` | `Operational_Cost_USD` |
 | 其餘 | 完全相同 | 完全相同 |
 
 ### 作答內容
@@ -264,59 +284,55 @@ df['Price'] = housing.target
 === 完整程式碼 ===
 
 === 簡單迴歸結果 ===
-使用特徵：MedInc
+使用特徵：Engine_Power_kW
 斜率：???   截距：???
-迴歸公式：Price = ??? × MedInc + ???
+迴歸公式：Cost = ??? × Engine_Power_kW + ???
 訓練 R²：???   測試 R²：???
 訓練 RMSE：??? 測試 RMSE：???
 
 === 多元迴歸結果 ===
-各特徵迴歸係數：（列出 8 個）
+各特徵迴歸係數：（列出 5 個）
 訓練 R²：???   測試 R²：???
 訓練 RMSE：??? 測試 RMSE：???
 
 === 簡單 vs 多元比較 ===
 R² 差了多少？RMSE 差了多少？為什麼？
+哪個特徵對營運成本的影響最大？
 ```
 
 ---
 
-## 第 2 題：羅吉斯迴歸 — 船舶設備故障預測
+## 第 2 題：羅吉斯迴歸 — 船舶維護狀態預測
 
 > 對應教學主題 3。
-> 課堂用「鐵達尼號生存預測」，作業換成「船舶引擎故障預測」。
+> 課堂用「鐵達尼號生存預測」，作業換成「船舶維護狀態是否為 Critical」。
 > Pipeline 結構一模一樣（StandardScaler + LogisticRegression），只需換資料。
 
-### 任務說明
+### 資料前處理
 
-使用船舶引擎感測器資料，預測引擎是否故障。
-
-### 資料建立
+維護狀態有三類（Good / Fair / Critical），需轉為二元分類：
 
 ```python
-np.random.seed(42)
-n = 400
-data = {
-    'engine_hours': np.random.randint(100, 20000, n),
-    'vibration_level': np.round(np.random.uniform(0.1, 8.0, n), 2),
-    'oil_temp': np.round(np.random.uniform(60, 120, n), 1),
-    'rpm': np.random.randint(500, 3000, n),
-}
-df = pd.DataFrame(data)
-prob = 1 / (1 + np.exp(-(
-    0.0002 * df['engine_hours'] + 0.3 * df['vibration_level'] +
-    0.02 * df['oil_temp'] - 0.001 * df['rpm'] - 2.5
-)))
-df['is_fault'] = (np.random.random(n) < prob).astype(int)
+# 建立二元目標：Critical = 1, 其他 = 0
+df['is_critical'] = (df['Maintenance_Status'] == 'Critical').astype(int)
+
+# 移除遺漏值
+df_clean = df.dropna(subset=['Maintenance_Status'])
+
+# 選取數值特徵
+features = ['Engine_Power_kW', 'Speed_Over_Ground_knots', 'Distance_Traveled_nm',
+            'Draft_meters', 'Cargo_Weight_tons', 'Turnaround_Time_hours']
+X = df_clean[features]
+y = df_clean['is_critical']
 ```
 
 ### 程式要求（對照課堂範例修改）
 
 | 步驟 | 課堂做的（Titanic） | 作業要做的（只需改的地方） |
 |------|---------------------|-------------------------|
-| 資料 | Titanic CSV | 船舶引擎（上方程式碼） |
-| 目標欄位 | `Survived` | `is_fault` |
-| 特徵 | `Pclass, Age, Fare, SibSp` | `engine_hours, vibration_level, oil_temp, rpm` |
+| 資料 | Titanic CSV | Ship Performance（上方程式碼） |
+| 目標 | `Survived` | `is_critical` |
+| 特徵 | `Pclass, Age, Fare, SibSp` | `Engine_Power_kW` 等 6 個 |
 | Pipeline | StandardScaler + LogisticRegression | 完全相同 |
 | 評估 | classification_report + 混淆矩陣 + ROC | 完全相同 |
 
@@ -331,10 +347,12 @@ df['is_fault'] = (np.random.random(n) < prob).astype(int)
 === 完整程式碼 ===
 
 === 各特徵迴歸係數 ===
-engine_hours:    ???
-vibration_level: ???
-oil_temp:        ???
-rpm:             ???
+Engine_Power_kW:          ???
+Speed_Over_Ground_knots:  ???
+Distance_Traveled_nm:     ???
+Draft_meters:             ???
+Cargo_Weight_tons:        ???
+Turnaround_Time_hours:    ???
 
 === 影響最大的特徵 ===
 特徵名稱：???
@@ -349,7 +367,7 @@ rpm:             ???
 === 混淆矩陣判讀 ===
 TP：???  FP：???
 FN：???  TN：???
-在船舶故障預測中，FN（漏報故障）比 FP（誤報故障）更嚴重，因為：???
+在船舶維護預測中，FN（漏報 Critical）比 FP（誤報 Critical）更嚴重，因為：???
 ```
 
 ---
@@ -365,16 +383,18 @@ FN：???  TN：???
 學號：
 
 Q1：課堂上我們用單一特徵（ad_spend）和三個特徵（tv, radio, web）
-    分別做了迴歸。多元迴歸的 R² 比簡單迴歸高。
-    但加更多特徵一定會讓模型更好嗎？什麼情況下反而會變差？
+    分別做了迴歸。作業中你也比較了單一特徵和多特徵。
+    多元迴歸的 R² 比簡單迴歸高多少？
+    加更多特徵一定會讓模型更好嗎？什麼情況下反而會變差？
 A1：???
 
 Q2：R²（決定係數）和 RMSE（均方根誤差）都可以評估迴歸模型。
-    它們的差異是什麼？在什麼情境下你會更看重 RMSE 而非 R²？
+    它們的差異是什麼？在預測船舶營運成本的情境下，
+    你會更看重哪一個指標？為什麼？
 A2：???
 
 Q3：課堂上 Titanic 的混淆矩陣中，FN 代表「實際生還但預測死亡」。
-    作業中船舶故障預測的 FN 代表「實際故障但預測正常」。
+    作業中船舶維護的 FN 代表「實際 Critical 但預測正常」。
     在不同的應用情境中（例如：醫療診斷、垃圾郵件過濾、自駕車障礙偵測），
     FN 和 FP 哪個更嚴重？請任選一個情境說明。
 A3：???
@@ -386,10 +406,10 @@ A3：???
 
 | 教學主題 | 課堂範例 | 作業題目 | 改了什麼 |
 |---------|---------|---------|---------|
-| 主題 1：簡單線性迴歸 | 廣告花費 → 銷售額 | Q1 前半：MedInc → 房價 | 換資料集 |
-| 主題 2：多元迴歸 | 三管道廣告 → 銷售額 | Q1 後半：8 特徵 → 房價 | 換資料集、多特徵 |
-| 主題 3：羅吉斯迴歸 | Titanic 生存預測 | Q2：船舶引擎故障預測 | 換海事情境 |
-| 課堂提問延伸 | 三個主題的重點問答 | Q3：觀念題（3 題） | 從提問延伸為書面 |
+| 主題 1：簡單迴歸 | 廣告花費 → 銷售額 | Q1 前半：引擎功率 → 營運成本 | 換船舶資料 |
+| 主題 2：多元迴歸 | 三管道廣告 → 銷售額 | Q1 後半：5 特徵 → 營運成本 | 換船舶資料、多特徵 |
+| 主題 3：羅吉斯迴歸 | Titanic 生存預測 | Q2：船舶維護狀態 Critical 預測 | 換海事情境 |
+| 課堂提問延伸 | 三個主題的重點問答 | Q3：觀念題（3 題） | 連結海事情境 |
 
 ---
 
