@@ -18,6 +18,10 @@
 
 ### 1. 分類預測模板（Ch10）
 
+![分類預測通用模板（7 大標準化階段）](images/classification_template.png)
+
+> 上圖：本週要建立的「分類預測通用模板」概覽——七大標準化階段（資料載入 → 特徵與目標分離 → Train/Test 切分 → 自動化編碼 → Pipeline 預處理 → 多模型批次訓練 → 結果評估比較），以及 Logistic Regression / SVC / KNN / RandomForest 四模型對比的整體輪廓。
+
 把前幾週學的分類器（KNN、SVM、決策樹）整理成共用的預測模板：
 
 ```python
